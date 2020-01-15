@@ -25,7 +25,7 @@ class Deck
 	{ " J", 10 },
 	{ " Q", 10 },
 	{ " K", 10 },
-	{ " A", 1 } }; // ace can be valued either 11 or 1 depending on situation
+	{ " A", 11 } }; // ace can be valued either 11 or 1 depending on situation
 public:
 	vector<unique_ptr<Card>> cards;
 	void createCards();
