@@ -1,18 +1,20 @@
 #pragma once
-#include "Dealer.h"
+#include "Player.h"
 
 using std::unique_ptr;
 using std::make_unique;
+using std::vector;
 
 class Game
 {
-	unique_ptr<Dealer> dealer = make_unique<Dealer>();
-	unique_ptr<Player> player = make_unique<Player>();
+	unique_ptr<Player> dealer = make_unique<Player>();
+	//unique_ptr<Player> player = make_unique<Player>();
+	vector<unique_ptr<Player>> playersVector;
+	int nrOfPlayers = 4;
 public:
 	Game();
 	~Game();
 	void printTable();
-	void dealCard(unique_ptr<Player> &player, unique_ptr<Deck> &deck);
 	void mainGameLoop();
 };
 

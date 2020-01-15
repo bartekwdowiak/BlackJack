@@ -4,8 +4,7 @@
 using std::for_each;
 using std::make_unique;
 using std::move;
-using std::default_random_engine;
-using std::shuffle;
+using std::random_shuffle;
 using std::cout;
 using std::endl;
 
@@ -28,8 +27,7 @@ void Deck::createCards()
 
 void Deck::shuffleDeck()
 {
-	auto randomEngine = default_random_engine{};
-	shuffle(cards.begin(), cards.end(), randomEngine);
+	random_shuffle(cards.begin(), cards.end());
 }
 
 Deck::Deck()
