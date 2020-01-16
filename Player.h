@@ -14,13 +14,16 @@ public:
 	vector<unique_ptr<Card>> playingHand;
 	// TODO: make fields below private and add getters and setters
 	int playersMoney = 1'000;
-	int handValue = 0;
+	int hardHandValue = 0;
+	int softHandValue = 0;
 	int betAmount = 0;
 	bool isDealer = false;
 	bool isBust = false;
 	bool isPlayersTurn = false;
 	bool isComputerControlled = true;
 	bool isOutOfMoney = false;
+	bool aceCountsAsOne = false;
+	bool isBlackJack = false;
 
 	array<array<Action, 10>, 18> basicStrategy =
 	{{  /* Dealers card:

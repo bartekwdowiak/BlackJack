@@ -5,8 +5,10 @@
 #define MIN_BET 10
 #define DELAY_OF_COMPUTER_ACTION 500
 #define WINNING_HAND_MULTIPLIER 2
+#define BLACK_JACK_MULTIPLIER 2.5
 #define	DEALERS_STOP_AMOUNT 17
 #define PLAYERS_MAX_POINTS 21
+#define DIFFERENCE_BETWEEN_SOFT_AND_HARD_HAND 10
 
 using std::unique_ptr;
 using std::make_unique;
@@ -40,7 +42,12 @@ void Game::printTable()
 	auto printPlayer = [&](const unique_ptr<Player>& player)
 	{
 		cout << "PLAYER" << ((player->isPlayersTurn) ? " <-  " : "     ");
-		cout << "SCORE: " << player->handValue << (player->isBust ? " BUST" : "") << endl;
+		cout << "SCORE: " << player->hardHandValue;
+		if (player->softHandValue > 0)
+		{
+			cout << " OR: " << player->softHandValue;
+		}
+		cout << (player->isBust ? " BUST" : "") << endl;
 		cout << player->getName() << "  Money: " << player->playersMoney << " Bet: " << player->betAmount << endl;
 
 		for_each(player->playingHand.begin(), player->playingHand.end(), printCard);
@@ -49,11 +56,17 @@ void Game::printTable()
 
 	system("cls");
 
-	cout << "TABLE RULES: MAX BET - " << MAX_BET << "$ MIN BET - " << MIN_BET << "$" << endl;
+	cout << "                                TABLE RULES: MAX BET - " << MAX_BET << "$  MIN BET - " << MIN_BET << "$" << endl;
+	cout << "                                        DEALER HITS UNTILL HARD 17" << endl;
 
 	//print dealers hand and score
 	cout << "DEALER" << ((dealer->isPlayersTurn) ? " <-  " : "     ");
-	cout << "SCORE: " << dealer->handValue << (dealer->isBust ? " BUST" : "") << endl;
+	cout << "SCORE: " << dealer->hardHandValue;
+	if (dealer->softHandValue > 0)
+	{
+		cout << " OR: " << dealer->softHandValue;
+	}
+	cout << (dealer->isBust ? " BUST" : "") << endl;
 	for_each(dealer->playingHand.begin(), dealer->playingHand.end(), printCard);
 	cout << endl << endl;
 
@@ -68,6 +81,7 @@ void Game::mainGameLoop()
 	int playersSeat = 0;
 	string playersName = "";
 
+	srand(time(0));
 
 	cout << "TAKE A SEAT:" << endl;
 	cout << "[0] [1] [2] [3]" << endl;
@@ -117,9 +131,22 @@ void Game::mainGameLoop()
 
 		auto checkScore = [](unique_ptr<Player>& player)
 		{
-			if (player->handValue > PLAYERS_MAX_POINTS)
+			if (player->hardHandValue > PLAYERS_MAX_POINTS)
 			{
-				player->isBust = true;
+				if (player->softHandValue == 0)
+				{
+					player->isBust = true;
+				}
+				else
+				{
+					player->hardHandValue = player->softHandValue;
+					player->softHandValue = 0;
+				}
+			}
+			else if (player->hardHandValue == PLAYERS_MAX_POINTS && player->playingHand.size() == 2)
+			{
+				player->isBlackJack = true;
+				player->softHandValue = 0;
 			}
 		};
 
@@ -129,58 +156,80 @@ void Game::mainGameLoop()
 			{
 				player->playingHand.push_back(move(deck->cards.back()));
 				deck->cards.pop_back();
-				player->handValue += player->playingHand.back()->rank.second;
+				player->hardHandValue += player->playingHand.back()->rank.second;
+				if (player->softHandValue > 0)
+				{
+					player->softHandValue += player->playingHand.back()->rank.second;
+				}
 				printTable();
 				Sleep(DELAY_OF_COMPUTER_ACTION);
+			}
+
+			// If there's an ACE on players hand, he might have a soft hand
+			// This can be done only once per turn thus aceCountsAsOne flag check
+			if (std::any_of(player->playingHand.begin(), player->playingHand.end(),
+				[](const unique_ptr<Card>& card) { return card->rank.second == 11; }) &&
+				!player->aceCountsAsOne &&
+				!player->isBlackJack)
+			{
+				player->softHandValue = player->hardHandValue - DIFFERENCE_BETWEEN_SOFT_AND_HARD_HAND;
+				player->aceCountsAsOne = true;
 			}
 		};
 
 		auto playTurn = [&](unique_ptr<Player>& player)
 		{
-			player->isPlayersTurn = true;
-			option = HIT;
-			if (player->isComputerControlled && !player->isOutOfMoney) 
+			if (!player->isBlackJack && !player->isOutOfMoney)
 			{
-				while ((option == HIT) && (!player->isBust))
+				player->isPlayersTurn = true;
+				option = HIT;
+				if (player->isComputerControlled)
 				{
-					printTable();
-					option = player->basicStrategy[player->handValue-4][dealer->handValue-2];
-					Sleep(DELAY_OF_COMPUTER_ACTION);
-					if (option == HIT)
+					while ((option == HIT) && (!player->isBust))
 					{
-						dealCard(player);
-						checkScore(player);
+						printTable();
+						option = player->basicStrategy[player->hardHandValue - 4][dealer->hardHandValue - 2];
+						Sleep(DELAY_OF_COMPUTER_ACTION);
+						if (option == HIT)
+						{
+							dealCard(player);
+							checkScore(player);
+						}
 					}
 				}
-			}
-			else if (!player->isComputerControlled)
-			{
-				while ((option == HIT) && (!player->isBust))
+				else
 				{
-					printTable();
-					cout << "Pick option: [1] HIT, [2] STAND" << endl;
-					cin >> option;
-					if (option == HIT)
+					while ((option == HIT) && (!player->isBust))
 					{
-						dealCard(player);
-						checkScore(player);
+						printTable();
+						cout << "Pick option: [1] HIT, [2] STAND" << endl;
+						cin >> option;
+						if (option == HIT)
+						{
+							dealCard(player);
+							checkScore(player);
+						}
 					}
 				}
+				player->isPlayersTurn = false;
 			}
-			player->isPlayersTurn = false;
 		};
 
 		auto roundSummary = [&](unique_ptr<Player> &player) 
 		{
-			if (player->playersMoney < MIN_BET && (player->isBust || player->handValue < dealer->handValue))
+			if (player->playersMoney < MIN_BET && (player->isBust || player->hardHandValue < dealer->hardHandValue))
 			{
 				player->isOutOfMoney = true;
 			}
-			else if (player->handValue > dealer->handValue && !player->isBust)
+			else if (player->isBlackJack)
+			{
+				player->playersMoney += static_cast<int>(player->betAmount * BLACK_JACK_MULTIPLIER);
+			}
+			else if (player->hardHandValue > dealer->hardHandValue && !player->isBust)
 			{
 				player->playersMoney += player->betAmount * WINNING_HAND_MULTIPLIER;
 			}
-			else if (player->handValue == dealer->handValue && !player->isBust)
+			else if (player->hardHandValue == dealer->hardHandValue && !player->isBust)
 			{
 				player->playersMoney += player->betAmount;
 			}
@@ -190,19 +239,29 @@ void Game::mainGameLoop()
 		// Take bets
 		printTable();
 		for_each(playersVector.begin(), playersVector.end(), takeBet);
-
-
+		
 		// Opening sequence - deal 2 cards to every player and 1 card to the dealer
 		for_each(playersVector.begin(), playersVector.end(), dealCard);
 		dealCard(dealer);
 		for_each(playersVector.begin(), playersVector.end(), dealCard);
+		for_each(playersVector.begin(), playersVector.end(), checkScore);
 
 		// Players turns
 		for_each(playersVector.begin(), playersVector.end(), playTurn);
 
 		// Dealers turn
-		while (dealer->handValue < DEALERS_STOP_AMOUNT)
+		while (dealer->hardHandValue < DEALERS_STOP_AMOUNT)
 		{
+			// If there's an ACE on players hand, he might have a soft hand
+			// This can be done only once per turn thus aceCountsAsOne flag check
+			//if (std::any_of(dealer->playingHand.begin(), dealer->playingHand.end(),
+			//	[](const unique_ptr<Card>& card) { return card->rank.second == 11; }) &&
+			//	!dealer->aceCountsAsOne)
+			//{
+			//	dealer->softHandValue = dealer->hardHandValue - DIFFERENCE_BETWEEN_SOFT_AND_HARD_HAND;
+			//	dealer->aceCountsAsOne = true;
+			//}
+
 			dealCard(dealer);
 			checkScore(dealer);
 		}
@@ -219,6 +278,7 @@ void Game::mainGameLoop()
 
 		if (option == 2 || playersVector[playersSeat]->isOutOfMoney)
 		{
+			system("cls");
 			cout << "Thank you for playing!" << endl;
 			cout << "Your final money: " << playersVector[playersSeat]->playersMoney << endl;
 			gameIsRunning = false;

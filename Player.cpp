@@ -14,9 +14,12 @@ string Player::getName()
 
 void Player::resetScore()
 {
-	this->handValue = 0;
+	this->hardHandValue = 0;
+	this->softHandValue = 0;
 	this->playingHand.clear();
 	this->isBust = false;
+	this->aceCountsAsOne = false;
+	this->isBlackJack = false;
 	this->betAmount = 0;
 }
 
