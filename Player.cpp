@@ -20,6 +20,7 @@ void Player::resetScore()
 	this->isBust = false;
 	this->aceCountsAsOne = false;
 	this->isBlackJack = false;
+	this->isDoubleDown = false;
 	this->betAmount = 0;
 }
 

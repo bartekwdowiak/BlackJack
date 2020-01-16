@@ -85,7 +85,12 @@ void Game::mainGameLoop()
 
 	cout << "TAKE A SEAT:" << endl;
 	cout << "[0] [1] [2] [3]" << endl;
-	cin >> playersSeat;
+	while (!(cin >> playersSeat) || (playersSeat != 0 && playersSeat != 1 && playersSeat != 2 && playersSeat != 3))
+	{
+		cin.clear();
+		cin.ignore(1000, '\n');
+		cout << "Wrong option! Pick again: [1] HIT, [2] STAND, [3] DOUBLE DOWN" << endl;
+	}
 	cout << "WHAT'S YOUR NAME?" << endl;
 	cin >> playersName;
 
@@ -114,7 +119,10 @@ void Game::mainGameLoop()
 			{
 				printTable();
 				cout << "How much do you want to bet?" << endl << "Enter amount: ";
-				cin >> bet;
+				while (!(cin >> bet))
+				{
+					cout << "Whoa! Bad Data, Try Again!" << endl << "Enter amount: ";
+				}
 				cout << endl;
 
 				while (bet < MIN_BET || bet > MAX_BET || bet > player->playersMoney || bet % MIN_BET != 0)
@@ -199,13 +207,40 @@ void Game::mainGameLoop()
 				}
 				else
 				{
-					while ((option == HIT) && (!player->isBust))
+					while ((option == HIT) && (!player->isBust) && !player->isDoubleDown)
 					{
 						printTable();
-						cout << "Pick option: [1] HIT, [2] STAND" << endl;
-						cin >> option;
+						if (player->playersMoney >= player->betAmount && player->playingHand.size() == 2)
+						{
+							cout << "Pick option: [1] HIT, [2] STAND, [3] DOUBLE DOWN" << endl;
+							while (!(cin >> option) || (option != 1 && option != 2 && option != 3))
+							{
+								cin.clear();
+								cin.ignore(1000, '\n');
+								cout << "Wrong option! Pick again: [1] HIT, [2] STAND, [3] DOUBLE DOWN" << endl;
+							}
+
+						}
+						else
+						{
+							cout << "Pick option: [1] HIT, [2] STAND" << endl;
+							while (!(cin >> option) || (option != 1 && option != 2))
+							{
+								cin.clear();
+								cin.ignore(1000, '\n');
+								cout << "Wrong option! Pick again: [1] HIT, [2] STAND" << endl;
+							}
+						}
 						if (option == HIT)
 						{
+							dealCard(player);
+							checkScore(player);
+						}
+						else if (option == DDOWN)
+						{
+							player->playersMoney -= player->betAmount;
+							player->betAmount *= 2;
+							player->isDoubleDown = true;
 							dealCard(player);
 							checkScore(player);
 						}
@@ -273,7 +308,10 @@ void Game::mainGameLoop()
 		if (!playersVector[playersSeat]->isOutOfMoney)
 		{
 			cout << "END OF TURN, WANT TO BET AGAIN?: [1] YES [2] NO" << endl;
-			cin >> option;
+			while (!(cin >> option) || (option != 1 && option != 2))
+			{
+				cout << "WRONG OPTION! PICK AGAIN:  [1] YES [2] NO" << endl;
+			}
 		}
 
 		if (option == 2 || playersVector[playersSeat]->isOutOfMoney)
