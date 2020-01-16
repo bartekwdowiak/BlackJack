@@ -287,16 +287,6 @@ void Game::mainGameLoop()
 		// Dealers turn
 		while (dealer->hardHandValue < DEALERS_STOP_AMOUNT)
 		{
-			// If there's an ACE on players hand, he might have a soft hand
-			// This can be done only once per turn thus aceCountsAsOne flag check
-			//if (std::any_of(dealer->playingHand.begin(), dealer->playingHand.end(),
-			//	[](const unique_ptr<Card>& card) { return card->rank.second == 11; }) &&
-			//	!dealer->aceCountsAsOne)
-			//{
-			//	dealer->softHandValue = dealer->hardHandValue - DIFFERENCE_BETWEEN_SOFT_AND_HARD_HAND;
-			//	dealer->aceCountsAsOne = true;
-			//}
-
 			dealCard(dealer);
 			checkScore(dealer);
 		}
